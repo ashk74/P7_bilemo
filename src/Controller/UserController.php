@@ -10,9 +10,10 @@ use JMS\Serializer\SerializationContext;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Exception\JsonException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class UserController extends AbstractController
 {
@@ -59,12 +60,8 @@ class UserController extends AbstractController
     #[Route('/api/users/{id}', name: 'user_show', methods: ['GET'])]
     public function show(?User $user): JsonResponse
     {
-        $this->userExist($user);
-
-        // If current customer is not the owner return an exception
-        if (!$this->isGranted("USER_VIEW", $user)) {
-            throw new JsonException("You can't see this content because you are not the owner", JsonResponse::HTTP_UNAUTHORIZED);
-        }
+        $this->userNotExist($user);
+        $this->isNotOwner('USER_SHOW', $user, 'You are not authorized to see this content');
 
         $serializerContext = SerializationContext::create()->setGroups(['user:show']);
         $jsonUser = $this->serializer->serialize($user, 'json', $serializerContext);
@@ -74,23 +71,30 @@ class UserController extends AbstractController
     #[Route('/api/users/{id}', name: 'user_delete', methods: ['DELETE'])]
     public function delete(EntityManagerInterface $em, ?User $user): JsonResponse
     {
-        $this->userExist($user);
-
-        // If current customer is not the owner return an exception
-        if (!$this->isGranted("USER_DELETE", $user)) {
-            throw new JsonException("You can't delete this content because you are not the owner", JsonResponse::HTTP_UNAUTHORIZED);
-        }
+        $this->userNotExist($user);
+        $this->isNotOwner('USER_DELETE', $user, 'You are not authorized to delete this content');
 
         $em->remove($user);
         $em->flush();
 
-        return new JsonResponse(['Success' => 'User has been deleted'], JsonResponse::HTTP_NO_CONTENT);
+        return new JsonResponse([
+            'code' => JsonResponse::HTTP_OK,
+            'message' => 'The user has been successfully deleted'
+        ], JsonResponse::HTTP_OK);
     }
 
-    public function userExist(?User $user)
+    public function userNotExist(?User $user)
     {
         if (!$user) {
-            throw new JsonException("No users found with this ID", JsonResponse::HTTP_NOT_FOUND);
+            throw new NotFoundHttpException("No user found with this ID");
+        }
+    }
+
+    public function isNotOwner(string $attribute, User $user, string $message)
+    {
+        // If current customer is not the owner return an exception
+        if (!$this->isGranted($attribute, $user)) {
+            throw new HttpException(JsonResponse::HTTP_UNAUTHORIZED, $message);
         }
     }
 }
