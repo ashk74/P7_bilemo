@@ -10,6 +10,7 @@ use JMS\Serializer\SerializationContext;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Exception\JsonException;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
@@ -58,6 +59,13 @@ class UserController extends AbstractController
     #[Route('/api/users/{id}', name: 'user_show', methods: ['GET'])]
     public function show(?User $user): JsonResponse
     {
+        $this->userExist($user);
+
+        // If current customer is not the owner return an exception
+        if (!$this->isGranted("USER_VIEW", $user)) {
+            throw new JsonException("You can't see this content because you are not the owner", JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
         $serializerContext = SerializationContext::create()->setGroups(['user:show']);
         $jsonUser = $this->serializer->serialize($user, 'json', $serializerContext);
         return new JsonResponse($jsonUser, JsonResponse::HTTP_OK, [], true);
@@ -66,9 +74,23 @@ class UserController extends AbstractController
     #[Route('/api/users/{id}', name: 'user_delete', methods: ['DELETE'])]
     public function delete(EntityManagerInterface $em, ?User $user): JsonResponse
     {
+        $this->userExist($user);
+
+        // If current customer is not the owner return an exception
+        if (!$this->isGranted("USER_DELETE", $user)) {
+            throw new JsonException("You can't delete this content because you are not the owner", JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
         $em->remove($user);
         $em->flush();
 
         return new JsonResponse(['Success' => 'User has been deleted'], JsonResponse::HTTP_NO_CONTENT);
+    }
+
+    public function userExist(?User $user)
+    {
+        if (!$user) {
+            throw new JsonException("No users found with this ID", JsonResponse::HTTP_NOT_FOUND);
+        }
     }
 }
