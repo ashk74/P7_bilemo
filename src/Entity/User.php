@@ -6,8 +6,48 @@ use Doctrine\ORM\Mapping as ORM;
 use App\Repository\UserRepository;
 use JMS\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
+use Hateoas\Configuration\Annotation as Hateoas;
 
-
+/**
+ * @Hateoas\Relation(
+ *      name = "create",
+ *      href = @Hateoas\Route(
+ *          "user_create",
+ *          absolute = true
+ *      ),
+ *      exclusion = @Hateoas\Exclusion(groups = {"user:list"}),
+ *      attributes = {"method": "POST" }
+ * )
+ * @Hateoas\Relation(
+ *      name = "self",
+ *      href = @Hateoas\Route(
+ *          "user_show",
+ *          parameters = { "id" = "expr(object.getId())" },
+ *          absolute = true
+ *      ),
+ *      exclusion = @Hateoas\Exclusion(groups = {"user:list", "user:show"}),
+ *      attributes = {"method": "GET" }
+ * )
+ * @Hateoas\Relation(
+ *      name = "delete",
+ *      href = @Hateoas\Route(
+ *          "user_delete",
+ *          parameters = { "id" = "expr(object.getId())" },
+ *          absolute = true
+ *      ),
+ *      exclusion = @Hateoas\Exclusion(groups = {"user:list", "user:show"}),
+ *      attributes = {"method": "DELETE" }
+ * )
+ * @Hateoas\Relation(
+ *      name = "all",
+ *      href = @Hateoas\Route(
+ *          "user_list",
+ *          absolute = true
+ *      ),
+ *      exclusion = @Hateoas\Exclusion(groups = {"user:show"}),
+ *      attributes = {"methods": "GET" }
+ * )
+ */
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
 class User
