@@ -9,6 +9,7 @@ use JMS\Serializer\SerializationContext;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ProductController extends AbstractController
 {
@@ -39,6 +40,10 @@ class ProductController extends AbstractController
     #[Route('/api/products/{id}', name: 'product_show', methods: ['GET'])]
     public function show(?Product $product): JsonResponse
     {
+        if (!$product) {
+            throw new NotFoundHttpException("No product found with this ID");
+        }
+
         $serializerContext = SerializationContext::create()->setGroups(['product:show']);
         $jsonProduct = $this->serializer->serialize($product, 'json', $serializerContext);
 
