@@ -15,21 +15,27 @@ class ExceptionListener
 
         // Init a new response
         $response = new Response();
+        $statusCode = 500;
+        $message = $exception->getMessage();
+        $response->setStatusCode(Response::HTTP_INTERNAL_SERVER_ERROR);
 
         // HttpExceptionInterface is a special type of exception that
         // holds status code and header details
         if ($exception instanceof HttpExceptionInterface) {
-            $jsonMessage = json_encode([
-                'code' => $exception->getStatusCode(),
-                'message' => $exception->getMessage()
-            ]);
+            $statusCode = $exception->getStatusCode();
+            $message = $exception->getMessage();
 
-            $response->setContent($jsonMessage);
             $response->setStatusCode($exception->getStatusCode());
-            $response->headers->replace(['Content-Type' => 'application/json']);
-        } else {
-            $response->setStatusCode(Response::HTTP_INTERNAL_SERVER_ERROR);
         }
+
+        // Create json content for the response
+        $jsonContent = json_encode([
+            'code' => $statusCode,
+            'message' => $message
+        ]);
+
+        $response->setContent($jsonContent);
+        $response->headers->replace(['Content-Type' => 'application/json']);
 
         // Sends the modified response object to the event
         $event->setResponse($response);
