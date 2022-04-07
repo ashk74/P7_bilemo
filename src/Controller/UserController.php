@@ -3,7 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\User;
-use App\Repository\UserRepository;
+use App\Service\Pagination;
 use JMS\Serializer\SerializerInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use JMS\Serializer\SerializationContext;
@@ -48,11 +48,19 @@ class UserController extends AbstractController
     }
 
     #[Route('/api/users', name: 'user_list', methods: ['GET'])]
-    public function list(UserRepository $userRepository): JsonResponse
+    #[Route('/api/users/page/{page}', name: 'user_list_paginated', methods: ['GET'])]
+    #[Route('/api/users/page/{page}/limit/{limit}', name: 'user_list_paginated_limit', methods: ['GET'])]
+    public function list(Pagination $paginator, int $page = 1, int $limit = 10): JsonResponse
     {
-        $users = $userRepository->findBy(['customer' => $this->getUser()->getId()]);
+        $result = $paginator->paginate(
+            'SELECT user FROM App\Entity\User user WHERE user.customer = :id ORDER BY user.id DESC',
+            $page,
+            $limit,
+            ['id' => $this->getUser()->getId()]
+        );
+
         $serializerContext = SerializationContext::create()->setGroups(['user:list']);
-        $jsonUsers = $this->serializer->serialize($users, 'json', $serializerContext);
+        $jsonUsers = $this->serializer->serialize($result, 'json', $serializerContext);
 
         return new JsonResponse($jsonUsers, JsonResponse::HTTP_OK, [], true);
     }
