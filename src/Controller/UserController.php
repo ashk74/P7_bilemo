@@ -17,15 +17,19 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class UserController extends AbstractController
 {
-    private $serializer;
+    private SerializerInterface $serializer;
+    private ValidatorInterface $validator;
+    private EntityManagerInterface $em;
 
-    public function __construct(SerializerInterface $serializer)
+    public function __construct(SerializerInterface $serializer, ValidatorInterface $validator, EntityManagerInterface $em)
     {
         $this->serializer = $serializer;
+        $this->validator = $validator;
+        $this->em = $em;
     }
 
     #[Route('/api/users', name: 'user_create', methods: ['POST'])]
-    public function create(Request $request, ValidatorInterface $validator, EntityManagerInterface $em): JsonResponse
+    public function create(Request $request): JsonResponse
     {
         $jsonReceived = $request->getContent();
 
@@ -33,14 +37,14 @@ class UserController extends AbstractController
         $user->setCustomer($this->getUser());
         $user->setCreatedAt(new \DatetimeImmutable());
 
-        $errors = $validator->validate($user);
+        $errors = $this->validator->validate($user);
 
         if (count($errors) > 0) {
             return $this->json($errors, JsonResponse::HTTP_BAD_REQUEST);
         }
 
-        $em->persist($user);
-        $em->flush();
+        $this->em->persist($user);
+        $this->em->flush();
 
         $serializerContext = SerializationContext::create()->setGroups(['user:show']);
         $jsonUser = $this->serializer->serialize($user, 'json', $serializerContext);
@@ -76,14 +80,40 @@ class UserController extends AbstractController
         return new JsonResponse($jsonUser, JsonResponse::HTTP_OK, [], true);
     }
 
+    #[Route('/api/users/{id}', name: 'user_update', methods: ['PUT'])]
+    public function update(Request $request, ?User $user): JsonResponse
+    {
+        $this->userNotExist($user);
+        $this->isNotOwner('USER_UPDATE', $user, 'You are not authorized to see this content');
+
+        $jsonReceived = $request->getContent();
+        $userUpdated = $this->serializer->deserialize($jsonReceived, User::class, 'json');
+
+        $user->getFirstname() == $userUpdated->getFirstname() ?: $user->setFirstname($userUpdated->getFirstname());
+        $user->getLastname() == $userUpdated->getLastname() ?: $user->setLastname($userUpdated->getLastname());
+        $user->getEmail() == $userUpdated->getEmail() ?: $user->setEmail($userUpdated->getEmail());
+
+        $errors = $this->validator->validate($user);
+
+        if (count($errors) > 0) {
+            return $this->json($errors, JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $this->em->flush();
+
+        $serializerContext = SerializationContext::create()->setGroups(['user:show']);
+        $jsonUser = $this->serializer->serialize($user, 'json', $serializerContext);
+        return new JsonResponse($jsonUser, JsonResponse::HTTP_OK, [], true);
+    }
+
     #[Route('/api/users/{id}', name: 'user_delete', methods: ['DELETE'])]
-    public function delete(EntityManagerInterface $em, ?User $user): JsonResponse
+    public function delete(?User $user): JsonResponse
     {
         $this->userNotExist($user);
         $this->isNotOwner('USER_DELETE', $user, 'You are not authorized to delete this content');
 
-        $em->remove($user);
-        $em->flush();
+        $this->em->remove($user);
+        $this->em->flush();
 
         return new JsonResponse([
             'code' => JsonResponse::HTTP_OK,

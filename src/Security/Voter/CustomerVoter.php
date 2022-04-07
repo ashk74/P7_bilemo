@@ -9,11 +9,12 @@ use Symfony\Component\Security\Core\User\UserInterface;
 class CustomerVoter extends Voter
 {
     public const SHOW = 'USER_SHOW';
+    public const UPDATE = 'USER_UPDATE';
     public const DELETE = 'USER_DELETE';
 
     protected function supports(string $attribute, $subject): bool
     {
-        return in_array($attribute, [self::SHOW, self::DELETE])
+        return in_array($attribute, [self::SHOW, self::UPDATE, self::DELETE])
             && $subject instanceof \App\Entity\User;
     }
 
@@ -26,7 +27,7 @@ class CustomerVoter extends Voter
         }
 
         // check conditions and return true to grant permission
-        if (in_array($attribute, ['USER_SHOW', 'USER_DELETE'])) {
+        if (in_array($attribute, ['USER_SHOW', 'USER_UPDATE', 'USER_DELETE'])) {
             return $customer === $subject->getCustomer();
         }
 
