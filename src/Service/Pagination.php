@@ -4,6 +4,7 @@ namespace App\Service;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\Pagination\Paginator;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -11,47 +12,50 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 class Pagination
 {
+    private int $currentPage;
     private int $limit;
     private string $dql;
     private int $lastPage;
     private array $paramsToBind = [];
     private EntityManagerInterface $entityManager;
+    private RequestStack $requestStack;
 
-    public function __construct(EntityManagerInterface $entityManager)
+    public function __construct(EntityManagerInterface $entityManager, RequestStack $requestStack)
     {
         $this->entityManager = $entityManager;
+        $this->requestStack = $requestStack;
+        $this->setCurrentPage();
+        $this->setLimit();
     }
 
-    public function paginate(string $dql, int $page, int $limit, ?array $paramsToBind)
+    public function paginate(string $dql, array $paramsToBind = null)
     {
         $this->setDql($dql);
         $this->setParamsToBind($paramsToBind);
 
-        $items = $this->initPagination($page, $limit);
+        $items = $this->initPagination();
         $result = [
             'items' => $items->getIterator(),
             'meta' => [
-                'limit' => $this->getLimit(),
-                'current_page' => $page,
-                'total_pages' => $this->getLastPage(),
+                'limit' => $this->limit,
+                'current_page' => $this->currentPage,
+                'total_pages' => $this->lastPage,
                 'total_items' => $items->count()
             ]
         ];
 
-        if ($page > $this->getLastPage()) {
+        if ($this->currentPage > $this->getLastPage()) {
             throw new NotFoundHttpException(sprintf('Page parameter can\'t be superior to the last page : %s', $this->getLastPage()));
         }
 
         return $result;
     }
 
-    private function initPagination(int $page, int $limit): Paginator
+    private function initPagination(): Paginator
     {
-        $this->setLimit($limit);
-
         // Use DQL for data queries
         $query = $this->entityManager->createQuery($this->dql)
-            ->setFirstResult($this->limit * ($page - 1))
+            ->setFirstResult($this->limit * ($this->currentPage - 1))
             ->setMaxResults($this->limit);
 
         // If DQL contain params to bind add $query->setParameter
@@ -75,9 +79,19 @@ class Pagination
         return $this->limit;
     }
 
-    private function setLimit(int $limit)
+    private function setLimit()
     {
-        $this->limit = $limit;
+        $this->limit = $this->requestStack->getMainRequest()->get('limit', 10);
+    }
+
+    public function getCurrentPage()
+    {
+        return $this->currentPage;
+    }
+
+    private function setCurrentPage()
+    {
+        $this->currentPage = $this->requestStack->getMainRequest()->get('page', 1);
     }
 
     public function getLastPage()
@@ -95,8 +109,10 @@ class Pagination
         $this->dql = $dql;
     }
 
-    private function setParamsToBind(array $paramsToBind): void
+    private function setParamsToBind(?array $paramsToBind): void
     {
-        $this->paramsToBind = $paramsToBind;
+        if ($paramsToBind != null) {
+            $this->paramsToBind = $paramsToBind;
+        }
     }
 }
