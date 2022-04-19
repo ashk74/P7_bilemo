@@ -62,7 +62,7 @@ class UserController extends AbstractController
      *     )
      *   ),
      *   @OA\Response(
-     *     response=200,
+     *     response=201,
      *     description="Created user",
      *     @OA\JsonContent(
      *       type="array",
@@ -98,7 +98,8 @@ class UserController extends AbstractController
             'json',
             SerializationContext::create()->setGroups(['user:show'])
         );
-        return new JsonResponse($jsonUser, JsonResponse::HTTP_OK, [], true);
+
+        return new JsonResponse($jsonUser, JsonResponse::HTTP_CREATED, [], true);
     }
 
     /**
@@ -262,7 +263,7 @@ class UserController extends AbstractController
      * @OA\Delete(
      *   tags={"Users"},
      *   summary="Delete a user by ID",
-     *   @OA\Response(response=200, description="Success message"),
+     *   @OA\Response(response=204, description="User successfully deleted"),
      *   @OA\Response(response=401, description="JWT unauthorized error"),
      *   @OA\Response(response=404, description="No user found with this ID"),
      *   @OA\PathParameter(
@@ -280,10 +281,7 @@ class UserController extends AbstractController
         $this->em->remove($user);
         $this->em->flush();
 
-        return new JsonResponse([
-            'code' => JsonResponse::HTTP_OK,
-            'message' => 'The user has been successfully deleted'
-        ], JsonResponse::HTTP_OK);
+        return new JsonResponse([], JsonResponse::HTTP_NO_CONTENT);
     }
 
     public function userNotExist(?User $user)
