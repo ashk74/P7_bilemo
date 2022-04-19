@@ -1,0 +1,35 @@
+nelmio_api_doc:
+    documentation:
+        servers:
+            - url: https://127.0.0.1:8000
+        info:
+            title: BileMo
+            description: |
+                In order to test the API directly in the documentation, please follow these steps :
+                1.  Launch Postman or any other equivalent software
+                2.  Enter the address: GET https://127.0.0.1:8000/api/login_check
+                3.  Fill in the following body in JSON :
+                ```json
+                    "username": "customer01@email.com",
+                    "password": "123456789"
+                ```
+                4.  Send the request
+                5.  Copy the token contained in the response
+                6.  Back to the documentation (https://127.0.0.1:8000/api/doc)
+                7.  Click on the button "Authorize" and paste the token
+            version: 1.0.0
+        components:
+            securitySchemes:
+                Bearer:
+                    type: http
+                    scheme: bearer
+                    bearerFormat: JWT
+        security:
+            - Bearer: []
+    media_types:
+        - json
+    models:
+        use_jms: true
+    areas:
+        path_patterns:
+            - ^/api(?!/doc$)
