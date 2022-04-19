@@ -5,8 +5,9 @@ namespace App\Entity;
 use Doctrine\ORM\Mapping as ORM;
 use App\Repository\UserRepository;
 use JMS\Serializer\Annotation\Groups;
-use Symfony\Component\Validator\Constraints as Assert;
 use Hateoas\Configuration\Annotation as Hateoas;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 /**
  * @Hateoas\Relation(
@@ -49,6 +50,10 @@ use Hateoas\Configuration\Annotation as Hateoas;
  * )
  */
 #[ORM\Entity(repositoryClass: UserRepository::class)]
+#[UniqueEntity(
+    fields: ['email'],
+    message: 'Please change your email because: {{ value }} is not available'
+)]
 #[ORM\Table(name: '`user`')]
 class User
 {
@@ -59,7 +64,7 @@ class User
     private $id;
 
     #[ORM\Column(type: 'string', length: 255)]
-    #[Groups(['user:list', 'user:show'])]
+    #[Groups(['user:create', 'user:list', 'user:show'])]
     #[Assert\NotBlank(
         message: 'Can not be blank'
     )]
@@ -70,7 +75,7 @@ class User
     private $firstname;
 
     #[ORM\Column(type: 'string', length: 255)]
-    #[Groups(['user:list', 'user:show'])]
+    #[Groups(['user:create', 'user:list', 'user:show'])]
     #[Assert\NotBlank(
         message: 'Can not be blank'
     )]
@@ -81,7 +86,7 @@ class User
     private $lastname;
 
     #[ORM\Column(type: 'string', length: 180)]
-    #[Groups(['user:show'])]
+    #[Groups(['user:create', 'user:show'])]
     #[Assert\NotBlank(
         message: 'Can not be blank'
     )]
