@@ -19,3 +19,7 @@ yarn-error.log
 ###> exclude .env ###
 .env
 ###< exclude .env ###
+
+###> lexik/jwt-authentication-bundle ###
+/config/jwt/*.pem
+###< lexik/jwt-authentication-bundle ###
