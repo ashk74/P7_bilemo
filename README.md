@@ -63,7 +63,13 @@ php bin/console doctrine:migrations:migrate
 ```bash
 php bin/console doctrine:fixtures:load
 ```
-### 7. Test
+
+### 7. Generate SSL keys for JWT Token
+```bash
+php bin/console lexik:jwt:generate-keypair
+```
+
+### 8. Test
 -   Go to [https://127.0.0.1:8000/api/doc](https://127.0.0.1:8000/api/doc) and follow the instructions
 
 ### Great ! You are ready to use BileMo API :)
